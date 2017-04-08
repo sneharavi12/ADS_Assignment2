@@ -1,0 +1,86 @@
+#Download
+
+
+#Handling Missing Data
+
+Missing Data analysis was undertaken  in two phases:
+
+1. Handling Numeric columns
+2. Handling text columns
+
+Handling Numeric Columns:
+
+    Step 1:
+    For those columns whose distribution doesnt change mush on replacing with zero, the same wass done.
+       delinq_2yrs has 29 missing observations and I think we can replace those with zero, giving 
+       lendors the benefit of the   doubt they wouldn't forget someone deliquent.
+       
+       inq_last_6mths will be fixed in a similar manner.
+       
+       mths_since_last_delinq missing values might need to be changed to a really high number.
+       The reason for this is that we need to punish borrowers with small numbers in this feature.
+       Missing values most likely mean the borrower has no delinquencies.
+       
+       Other columns imputed with zeroes are - open_acc, pub_rec, total_acc, collections_12_mths_ex_med, acc_now_delinq
+      
+     Step 2:
+       Numeric columns where it cannot be just replaced with zero i.e, distribution changes, 
+       but there are significant   missing values, we can replace it by median
+       
+       Example:
+       -> annual_inc has only 4 missing observations so I will do a median value imputation with this feature.
+       
+       ->loan['revol_util'] = loan['revol_util'].fillna(loan['revol_util'].median())
+       
+       ->tot_coll_amt will involve a median value imputation. I think regression imputation might work better but since              this is initial stuff we will keep it simple.
+         loan['tot_coll_amt'] = loan['tot_coll_amt'].fillna(loan['tot_coll_amt'].median())
+
+        ->Other columns for median replacement: 
+        
+       
+       Step 3:
+     We also included a few derived columns to get some necessary insights and information:
+     mths_since_last_major_derog will be changed to a new variable where missing values = 0 
+     for no derogs and non-missing =  1 for atleast 1 derog.
+     feature will be named 90day_worse_rating
+
+     loan['90day_worse_rating'] = np.where(loan['mths_since_last_major_derog'].isnull(), 0, 1)
+
+       ->Joint Account Type and Individual Account Type were mutually exclusive. So were the incomes.
+       Hence they were put together ot form a single column
+       
+       ->open to buy = credit limit - (sum of holds and outstanding balance) 
+       assuming that sum of holds and outstanding balance is zero in this case
+       fullData['bc_open_to_buy'].fillna(fullData['tot_hi_cred_lim'], inplace=True)
+       
+       -> With the high & low credit ranges, we were able to calculate the risk score
+       fullData['risk_score'] = fullData[['fico_range_low', 'fico_range_high']].mean(axis=1)
+      
+      
+          Step 4: Delete those insignificant columns where most of the column is empty and will not let us analyze anything
+       features below are being dropped due to their significantly high proportion of
+       missing values or they are date    values.
+
+               loan = loan.drop(['earliest_cr_line', 'last_pymnt_d', 'next_pymnt_d', 'last_credit_pull_d',
+               'annual_inc_joint','dti_joint', 'verification_status_joint', 'open_acc_6m', 'open_il_6m', 
+               'open_il_12m', 'open_il_24m', 'mths_since_rcnt_il',
+               'total_bal_il', 'il_util', 'open_rv_24m', 'open_rv_12m', 'max_bal_bc', 'all_util','total_cu_tl',  
+               'mths_since_last_record', 'mths_since_last_major_derog']
+        
+Handling Missing & Cleaning fo Text Columns:
+    STEP 1: Check all the text columns that are categorical. We noticed that there weren't any missing values
+    
+    ->Split Issue Date to obtain Month and Year columns.
+    
+    ->Home ownership had about 7 categories. Merged 'other', 'none' and 'any' into a single category called none.
+    
+    ->Employment length was changed to contain numeric values
+    
+    ->The same was done with term and interest rate columns
+    
+    
+     STEP 2: A lot of columns seemed like they couldnt give any important information. 
+     These were dropped - url,dech, emp title
+       
+    
+    
